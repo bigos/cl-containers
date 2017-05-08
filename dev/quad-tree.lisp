@@ -4,20 +4,56 @@
 
 ;;; ------------------ my exploration ------------------------------------------
 
+;;; this classifier allows us to pass cons pairs as coordinates
+(defun cons-classifier (x y)
+  (cond ((and (< (car x) (car y))
+              (>= (cdr x) (cdr y)))
+         :TOP-LEFT)
+        ((and (>= (car x) (car y))
+              (>= (cdr x) (cdr y)))
+         :TOP-RIGHT)
+        ((and (>= (car x) (car y))
+              (< (cdr x) (cdr y)))
+         :BOTTOM-RIGHT)
+        ((and (< (car x) (car y))
+              (< (cdr x) (cdr y)))
+         :BOTTOM-LEFT)
+        (T (error "ran out of options"))))
+
+;; This is example of running the following code
+;; as we can see the children are added correctly
+;; #<QUAD-TREE-NODE {1002108043}>
+;; --------------------
+;; Class: #<STANDARD-CLASS METABANG.CL-CONTAINERS::QUAD-TREE-NODE>
+;; --------------------
+;; Group slots by inheritance [ ]
+;; Sort slots alphabetically  [X]
+;;
+;; All Slots:
+;; [ ]  BOTTOM-LEFT-CHILD  = @2=#<QUAD-TREE-NODE (-1 . -1)>
+;; [ ]  BOTTOM-RIGHT-CHILD = #<QUAD-TREE-NODE (1 . -1)>
+;; [ ]  ELEMENT            = (0 . 0)
+;; [ ]  PARENT             = NIL
+;; [ ]  TOP-LEFT-CHILD     = #<QUAD-TREE-NODE (-1 . 1)>
+;; [ ]  TOP-RIGHT-CHILD    = #<QUAD-TREE-NODE (1 . 1)>
+;; [ ]  TREE               = @0=#<QUAD-TREE {1002040973}>
+
+
+
 (defun test-exploration ()
-  (let ((c (make-instance 'quad-tree)))
+  (let ((c (make-instance 'quad-tree :classifier 'cons-classifier )))
     (unless (eq (size c) 0)
       (cerror "wrong size ~a , but 0 expected" (size c)))
-    (insert-item c (make-instance 'quad-tree-node))
+    (insert-item c (make-node-for-container c (cons 0 0)))
     (unless (= (size c) 1)
       (cerror "continue" "error: got ~a, expected 1" (size c)))
-    (insert-item c (make-instance 'quad-tree-node))
-    (insert-item c (make-instance 'quad-tree-node))
-    (insert-item c (make-instance 'quad-tree-node))
-    (insert-item c (make-instance 'quad-tree-node))
-    (insert-item c (make-instance 'quad-tree-node))
-    (unless (= (size c) 6)
-      (cerror "continue" "error: got ~a expected 6" (size c)))
+    (insert-item c (make-node-for-container c (cons -1 1)))
+    (insert-item c (make-node-for-container c (cons 1 1)))
+    (insert-item c (make-node-for-container c (cons 1 -1)))
+    (insert-item c (make-node-for-container c (cons -1 -1)))
+    (unless (= (size c) 5)
+      (cerror "continue" "error: got ~a expected 5" (size c)))
+    (cerror "hurray" "tree examiner ~a" c)
     (empty! c)
     (unless (eq (size c) 0)
       (cerror "continue" "wrong size ~a , but 0 expected" (size c)))
@@ -88,41 +124,42 @@ relative to its parent could be relevant to the element. Status is one of:
 
 (defmethod insert-item ((tree quad-tree) (item quad-tree-node))
   (loop with key = (key tree)
-        with y = (make-node-for-container tree nil)
-        with classifier = (classifier tree)
-        and x = (root tree)
-        and key-item = (funcall key (element item))
-        while (not (node-empty-p x))
-        do
-        (progn
-          (setf y x)
-          (case (funcall classifier key-item (funcall key (element x)))
-            (:TOP-LEFT (setf x (top-left-child x)))
-            (:TOP-RIGHT (setf x (top-right-child x)))
-            (:BOTTOM-LEFT (setf x (bottom-left-child x)))
-            (:BOTTOM-RIGHT (setf x (bottom-right-child x)))))
+     with y = (make-node-for-container tree nil)
+     with classifier = (classifier tree)
+     and x = (root tree)
+     and key-item = (funcall key (element item))
+     while (not (node-empty-p x))
+     do
+       (progn
+         (setf y x)
+         (case (funcall classifier key-item (funcall key (element x)))
+           (:TOP-LEFT (setf x (top-left-child x)))
+           (:TOP-RIGHT (setf x (top-right-child x)))
+           (:BOTTOM-LEFT (setf x (bottom-left-child x)))
+           (:BOTTOM-RIGHT (setf x (bottom-right-child x)))))
 
-        finally (progn
-                  (setf (parent item) y
-                        (tree item) tree)
-                  (if (node-empty-p y)
-                    (progn
-                      (notify-element-of-child-status (element item) :ROOT)
-                      (setf (root tree) item))
-                    (case (funcall classifier key-item (funcall key (element y)))
-                      (:TOP-LEFT
-                       (notify-element-of-child-status (element item) :TOP-LEFT)
-                       (setf (top-left-child y) item))
-                      (:TOP-RIGHT
-                       (notify-element-of-child-status (element item) :TOP-RIGHT)
-                       (setf (top-right-child y) item))
-                      (:BOTTOM-LEFT
-                       (notify-element-of-child-status (element item) :BOTTOM-LEFT)
-                       (setf (bottom-left-child y) item))
-                      (:BOTTOM-RIGHT
-                       (notify-element-of-child-status
-                        (element item) :BOTTOM-RIGHT)
-                       (setf (bottom-right-child y) item))))))
+     finally (progn
+               (cerror "continue" "classifier found ~a" classifier)
+               (setf (parent item) y
+                     (tree item) tree)
+               (if (node-empty-p y)
+                   (progn
+                     (notify-element-of-child-status (element item) :ROOT)
+                     (setf (root tree) item))
+                   (case (funcall classifier key-item (funcall key (element y)))
+                     (:TOP-LEFT
+                      (notify-element-of-child-status (element item) :TOP-LEFT)
+                      (setf (top-left-child y) item))
+                     (:TOP-RIGHT
+                      (notify-element-of-child-status (element item) :TOP-RIGHT)
+                      (setf (top-right-child y) item))
+                     (:BOTTOM-LEFT
+                      (notify-element-of-child-status (element item) :BOTTOM-LEFT)
+                      (setf (bottom-left-child y) item))
+                     (:BOTTOM-RIGHT
+                      (notify-element-of-child-status
+                       (element item) :BOTTOM-RIGHT)
+                      (setf (bottom-right-child y) item))))))
   (incf (size tree))
   (values tree))
 
