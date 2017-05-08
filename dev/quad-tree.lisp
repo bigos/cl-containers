@@ -1,5 +1,30 @@
 (in-package #:containers)
 
+;;; ------------------ my tests ------------------------------------------------
+
+(declaim (optimize (debug 3)))
+
+(defun test-exploration ()
+  (let ((c (make-instance 'quad-tree)))
+    (unless (eq (size c) 0)
+      (cerror "wrong size ~a , but 0 expected" (size c)))
+    (insert-item c (make-instance 'quad-tree-node))
+    (format t "---------- ~A~%" (size c))
+    ;; 1 works but 0 gives you a vector type problem
+    ;; The value
+    ;; 1
+    ;; is not of type
+    ;; (OR (VECTOR CHARACTER) (VECTOR NIL) BASE-STRING FUNCTION
+    ;;     SYMBOL CONDITION SB-PCL::CONDITION-CLASS)
+    (unless (= (size c) 0)
+      (cerror "wrong size ~a , but 1 expected" (size c)))
+    ;; (empty! c)
+    ;; (unless (eq (size c) 0)
+    ;;   (cerror "wrong size ~a , but 0 expected" (size c)))
+    ))
+
+
+;;; ----------------------------------------------------------------------------
 
 ;;; quad-tree
 
@@ -56,7 +81,7 @@
 status as a child. Useful for quad tree elements, where an element's position
 relative to its parent could be relevant to the element. Status is one of:
 :TOP-LEFT, :TOP-RIGHT, :BOTTOM-LEFT, :BOTTOM-RIGHT or :ROOT")
-  
+
   (:method ((element t) (status t))
            (values nil)))
 
@@ -76,7 +101,7 @@ relative to its parent could be relevant to the element. Status is one of:
             (:TOP-RIGHT (setf x (top-right-child x)))
             (:BOTTOM-LEFT (setf x (bottom-left-child x)))
             (:BOTTOM-RIGHT (setf x (bottom-right-child x)))))
-        
+
         finally (progn
                   (setf (parent item) y
                         (tree item) tree)
@@ -85,17 +110,17 @@ relative to its parent could be relevant to the element. Status is one of:
                       (notify-element-of-child-status (element item) :ROOT)
                       (setf (root tree) item))
                     (case (funcall classifier key-item (funcall key (element y)))
-                      (:TOP-LEFT 
+                      (:TOP-LEFT
                        (notify-element-of-child-status (element item) :TOP-LEFT)
                        (setf (top-left-child y) item))
-                      (:TOP-RIGHT 
+                      (:TOP-RIGHT
                        (notify-element-of-child-status (element item) :TOP-RIGHT)
                        (setf (top-right-child y) item))
-                      (:BOTTOM-LEFT 
+                      (:BOTTOM-LEFT
                        (notify-element-of-child-status (element item) :BOTTOM-LEFT)
                        (setf (bottom-left-child y) item))
-                      (:BOTTOM-RIGHT 
-                       (notify-element-of-child-status 
+                      (:BOTTOM-RIGHT
+                       (notify-element-of-child-status
                         (element item) :BOTTOM-RIGHT)
                        (setf (bottom-right-child y) item))))))
   (incf (size tree))
@@ -107,7 +132,7 @@ relative to its parent could be relevant to the element. Status is one of:
 
 (defmethod empty! ((tree quad-tree))
   (setf (root tree) (make-node-for-container tree nil))
-  (setf (size tree) 0) 
+  (setf (size tree) 0)
   (values tree))
 
 
@@ -125,7 +150,7 @@ relative to its parent could be relevant to the element. Status is one of:
           while (and (not (node-empty-p current))
                      (funcall test
                               (element item) (element current))) do
-          
+
           (setf last-node current)
           (case (funcall classifier key-item (funcall key (element current)))
             (:TOP-LEFT (setf current (top-left-child current)))
@@ -133,9 +158,8 @@ relative to its parent could be relevant to the element. Status is one of:
             (:BOTTOM-LEFT (setf current (bottom-left-child current)))
             (:BOTTOM-RIGHT (setf current (bottom-right-child current)))
             (otherwise (setf current nil))))
-    
+
     (if (and (not (node-empty-p last-node))
              (funcall test (element item) (element last-node)))
       (values last-node)
       (values nil))))
-

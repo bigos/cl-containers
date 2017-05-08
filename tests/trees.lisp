@@ -128,17 +128,3 @@ c
 (compute-applicable-methods #'iterate-nodes (list c #'identity))
 (compute-applicable-methods #'delete-item (list c 1))
 |#
-
-
-(addtest (test-trees)
-         find-on-nonexistant-item-nonempty
-
-         (ensure-cases (class)
-                       '(quad-tree)
-                       (let ((c (make-instance class)))
-                         (ensure-same (size c) 0 :test '=)
-                         (insert-item c (make-instance 'quad-tree-node))
-                         (ensure-same (size c) 1 :test '=)
-                         (empty! c)
-                         (ensure-same (size c) 0 :test '=)
-                         )))
