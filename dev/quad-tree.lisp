@@ -1,26 +1,26 @@
+(declaim (optimize (speed 0) (debug 3)))
+
 (in-package #:containers)
 
-;;; ------------------ my tests ------------------------------------------------
-
-(declaim (optimize (debug 3)))
+;;; ------------------ my exploration ------------------------------------------
 
 (defun test-exploration ()
   (let ((c (make-instance 'quad-tree)))
     (unless (eq (size c) 0)
       (cerror "wrong size ~a , but 0 expected" (size c)))
     (insert-item c (make-instance 'quad-tree-node))
-    (format t "---------- ~A~%" (size c))
-    ;; 1 works but 0 gives you a vector type problem
-    ;; The value
-    ;; 1
-    ;; is not of type
-    ;; (OR (VECTOR CHARACTER) (VECTOR NIL) BASE-STRING FUNCTION
-    ;;     SYMBOL CONDITION SB-PCL::CONDITION-CLASS)
-    (unless (= (size c) 0)
-      (cerror "wrong size ~a , but 1 expected" (size c)))
-    ;; (empty! c)
-    ;; (unless (eq (size c) 0)
-    ;;   (cerror "wrong size ~a , but 0 expected" (size c)))
+    (unless (= (size c) 1)
+      (cerror "continue" "error: got ~a, expected 1" (size c)))
+    (insert-item c (make-instance 'quad-tree-node))
+    (insert-item c (make-instance 'quad-tree-node))
+    (insert-item c (make-instance 'quad-tree-node))
+    (insert-item c (make-instance 'quad-tree-node))
+    (insert-item c (make-instance 'quad-tree-node))
+    (unless (= (size c) 6)
+      (cerror "continue" "error: got ~a expected 6" (size c)))
+    (empty! c)
+    (unless (eq (size c) 0)
+      (cerror "continue" "wrong size ~a , but 0 expected" (size c)))
     ))
 
 
