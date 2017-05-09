@@ -41,7 +41,9 @@
 
 
 (defun test-exploration ()
-  (let ((c (make-instance 'quad-tree :classifier 'cons-classifier )))
+  (let ((c (make-instance 'quad-tree
+                          :classifier 'cons-classifier
+                          :test 'equal)))
     (unless (eq (size c) 0)
       (cerror "wrong size ~a , but 0 expected" (size c)))
     (insert-item c (make-node-for-container c (cons 0 0)))
@@ -53,7 +55,12 @@
     (insert-item c (make-node-for-container c (cons -1 -1)))
     (unless (= (size c) 5)
       (cerror "continue" "error: got ~a expected 5" (size c)))
+
     (cerror "hurray" "tree examiner ~a" c)
+    (defparameter zzz (find-item c (make-instance 'quad-tree-node
+                                                  :tree c
+                                                  :element (cons 0 0))))
+    (cerror "yess" "found examiner ~a" zzz)
     (empty! c)
     (unless (eq (size c) 0)
       (cerror "continue" "wrong size ~a , but 0 expected" (size c)))
@@ -139,7 +146,6 @@ relative to its parent could be relevant to the element. Status is one of:
            (:BOTTOM-RIGHT (setf x (bottom-right-child x)))))
 
      finally (progn
-               (cerror "continue" "classifier found ~a" classifier)
                (setf (parent item) y
                      (tree item) tree)
                (if (node-empty-p y)
@@ -181,22 +187,31 @@ relative to its parent could be relevant to the element. Status is one of:
   (let ((last-node nil)
         (current (root tree))
         (test (test tree)))
+    (cerror "hmmmmm" "current is ~A" current)
     (loop with key = (key tree)
-          with classifier = (classifier tree)
-          and key-item = (funcall key (element item))
-          while (and (not (node-empty-p current))
-                     (funcall test
-                              (element item) (element current))) do
-
-          (setf last-node current)
-          (case (funcall classifier key-item (funcall key (element current)))
-            (:TOP-LEFT (setf current (top-left-child current)))
-            (:TOP-RIGHT (setf current (top-right-child current)))
-            (:BOTTOM-LEFT (setf current (bottom-left-child current)))
-            (:BOTTOM-RIGHT (setf current (bottom-right-child current)))
-            (otherwise (setf current nil))))
+       with classifier = (classifier tree)
+       and key-item = (funcall key (element item))
+       while (and (not (node-empty-p current))
+                  (funcall test
+                           (element item) (element current)))
+       do
+         (cerror "find-item checking" "current ~A" current)
+         (setf last-node current)
+         (case (funcall classifier key-item (funcall key (element current)))
+           (:TOP-LEFT (setf current (top-left-child current)))
+           (:TOP-RIGHT (setf current (top-right-child current)))
+           (:BOTTOM-LEFT (setf current (bottom-left-child current)))
+           (:BOTTOM-RIGHT (setf current (bottom-right-child current)))
+           (otherwise (setf current nil)))
+       finally
+         (cerror "after lopp" "test results: not empty ~A  comparison ~a - ~A ~A"
+                 (not (node-empty-p current))
+                 (funcall test
+                          (element item) (element current))
+                 (element item)
+                 (element current)))
 
     (if (and (not (node-empty-p last-node))
              (funcall test (element item) (element last-node)))
-      (values last-node)
-      (values nil))))
+        (values last-node)
+        (values nil))))
